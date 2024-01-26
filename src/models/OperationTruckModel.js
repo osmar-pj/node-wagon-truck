@@ -9,10 +9,12 @@ const operationTruckSchema = new mongoose.Schema({
     ruta: String,
     turno: String,
     qtyHorometer: Number,
-    createdAt: Date,
+    dateCreated: Date,
+    code: Number
 },
 {
-    versionKey: false,
+    timestamps: true,
+    versionKey: false
 }
 )
 

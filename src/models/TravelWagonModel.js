@@ -24,9 +24,11 @@ const travelSchema = new mongoose.Schema({
     loadEnd: Number,
     downloadStart: Number,
     downloadEnd: Number,
-    createdAt: Date
+    code: Number,
+    dateCreated: Date
 },
 {
+    timestamps: true,
     versionKey: false,
 }
 )

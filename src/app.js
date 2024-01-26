@@ -60,7 +60,7 @@ const routes = [
 app.use('/', routes)
 
 app.get('/', (req, res) => {
-    res.json({message : 'Welcome to the API WAGONS'})
+    res.json({message : 'Welcome to the API WAGONS-TRUCKS'})
 })
 
 app.listen(process.env.PORT, () => {
