@@ -146,15 +146,15 @@ export const insertTruckData = async (req, res) => {
         }
         await Promise.all([...newOperationData, ...newTravelData, ...newTravelDataIncompleto]);
         // filtrar los viajes hacia colquicocha
-        const trips = dataTravels.filter((i) => i.ruta === 'YUM CANCHA SUPERFICIE - UCH CANCHA COLQUICOCHA' || i.ruta === 'YUM CARGUIO INTERIOR MINA - UCH CANCHA COLQUICOCHA')
-        if (trips.length > 0) {
-            const months = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO','AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE']
-            const tripsFormatted = trips.map(async (i) => {
+        const tripsCanchas = dataTravels.filter((i) => i.ruta === 'YUM CANCHA SUPERFICIE - UCH CANCHA COLQUICOCHA' || i.ruta === 'YUM CARGUIO INTERIOR MINA - UCH CANCHA COLQUICOCHA')
+        const tripsPlanta = dataTravels.filter(i => i.ruta === 'UCH CANCHA COLQUICOCHA - UCH ECHADERO PLANTA')
+        const months = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO','AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE']
+        if (tripsCanchas.length > 0) {
+            const tripsFormatted = tripsCanchas.map(async (i) => {
                 const operation = await OperationTruckModel.findOne(({code: i.code}))
                 const truck = await TruckModel.findOne(({truckId: i.truck_Id}))
                 const driver = await DriverModel.findOne(({driverId: i.driver_Id}))
                 const contract = await ContractModel.findOne(({contractId: driver.contract}))
-                console.log(truck, driver, contract)
                 return {
                     month: months[new Date(i.createdAt).getMonth()], // ENERO / DIC
                     year: `${new Date(i.createdAt).getFullYear()}`, // 2021
@@ -183,6 +183,40 @@ export const insertTruckData = async (req, res) => {
             })
             const data = await Promise.all(tripsFormatted)
             await axios.post(`${process.env.GEOLOGY_URL}/triplist`, data)
+        }
+
+        if (tripsPlanta.length > 0) {
+            console.log('PLANTA', tripsPlanta)
+            const tripsFormatted = tripsPlanta.map(async (i) => {
+                const operation = await OperationTruckModel.findOne(({code: i.code}))
+                const truck = await TruckModel.findOne(({truckId: i.truck_Id}))
+                const driver = await DriverModel.findOne(({driverId: i.driver_Id}))
+                const contract = await ContractModel.findOne(({contractId: driver.contract}))
+                return {
+                    month: months[new Date(i.createdAt).getMonth()], // ENERO / DIC
+                    year: `${new Date(i.createdAt).getFullYear()}`, // 2021
+                    date: `${new Date(i.createdAt).getDate()}/${new Date(i.createdAt).getMonth() + 1}/${new Date(i.createdAt).getFullYear()}`, // 01/01/2021
+                    status: 'Planta',
+                    ubication: 'Planta',
+                    turn: operation.turno,
+                    mining: i.mining.toUpperCase(),
+                    operator: driver.name,
+                    tag: truck.tag,
+                    contract: contract.name,
+                    type: i.type,
+                    tajo: i.tajo,
+                    dominio: i.dominio,
+                    ton: i.weight_net * 0.94,
+                    tonh: i.weight_net,
+                    timestamp: i.createdAt,
+                    nro_month: new Date(i.createdAt).getMonth() + 1, // mes de NODE
+                    travel_Id: i.createdAt,
+                    statusMina: 'Completo',
+                    validMina: true,
+                    statusGeology: 'General',
+                    validGeology: true
+                }
+            })
         }
         
         return res.status(200).json({ status: true, message: 'Se ha registrado la data correctamente en la base de datos' });
