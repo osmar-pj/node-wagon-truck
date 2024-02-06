@@ -32,6 +32,7 @@ export const generateOperator = async (req, res) => {
             ];
             
             await OperatorModel.insertMany(operatorsData);
+            console.log('OPERATORS SAVED')
         }
     } catch (error) {
         res.json({ message: error.message });
@@ -74,6 +75,7 @@ export const generateLocomotive = async (req, res) => {
             ];
             
             await LocomotiveModel.insertMany(locomotivesData);
+            console.log('LOCOMOTIVES SAVED')
         }
         
     } catch (error) {
@@ -171,6 +173,7 @@ export const generateDriver = async (req, res) => {
             })
 
             await DriverModel.insertMany(drivers)
+            console.log('DRIVERS SAVED')
 
         }
     } catch (error) {
@@ -244,6 +247,7 @@ export const generateTruck = async (req, res) => {
             })
             
             await TruckModel.insertMany(trucks);
+            console.log('TRUCKS SAVED')
         }
         
     } catch (error) {
@@ -254,39 +258,40 @@ export const generateTruck = async (req, res) => {
 export const generateTajo = async (req, res) => {
     try {
 
-        const count = await TajoModel.estimatedDocumentCount()
+        // const count = await TajoModel.estimatedDocumentCount()
 
-        if (count == 0) {
+        // if (count == 0) {
 
-            const tajosData = [
-                { name: 'TJ200NE', valid: 1 },
-                { name: 'TJ400_1P_1', valid: 1 },
-                { name: 'TJ400_2P_1', valid: 1 },
-                { name: 'TJ400_6S_1', valid: 1 },
-                { name: 'TJ500_1S_1', valid: 1 },
-                { name: 'TJ500_2S_1', valid: 1 },
-                { name: 'TJ500_3P_1', valid: 1 },
-                { name: 'TJ500_3S_1', valid: 1 },
-                { name: 'TJ500_4S_1', valid: 1 },
-                { name: 'TJ500_5S_1', valid: 1 },
-                { name: 'TJ500_6P_1', valid: 1 },
-                { name: 'TJ500_7P_1', valid: 1 },
-                { name: 'TJ500_7S_1', valid: 1 },
-                { name: 'TJ500_8S_1', valid: 1 },
-                { name: 'TJ500_11P_1', valid: 1 }
-            ];
+        //     const tajosData = [
+        //         { name: 'TJ200NE', valid: 1 },
+        //         { name: 'TJ400_1P_1', valid: 1 },
+        //         { name: 'TJ400_2P_1', valid: 1 },
+        //         { name: 'TJ400_6S_1', valid: 1 },
+        //         { name: 'TJ500_1S_1', valid: 1 },
+        //         { name: 'TJ500_2S_1', valid: 1 },
+        //         { name: 'TJ500_3P_1', valid: 1 },
+        //         { name: 'TJ500_3S_1', valid: 1 },
+        //         { name: 'TJ500_4S_1', valid: 1 },
+        //         { name: 'TJ500_5S_1', valid: 1 },
+        //         { name: 'TJ500_6P_1', valid: 1 },
+        //         { name: 'TJ500_7P_1', valid: 1 },
+        //         { name: 'TJ500_7S_1', valid: 1 },
+        //         { name: 'TJ500_8S_1', valid: 1 },
+        //         { name: 'TJ500_11P_1', valid: 1 }
+        //     ];
 
-            const tajos = tajosData.map((tajo, index) => {
-                return {
-                    tajoId: index + 1,
-                    name: tajo.name,
-                    valid: tajo.valid
-                }
-            })
+        //     const tajos = tajosData.map((tajo, index) => {
+        //         return {
+        //             tajoId: index + 1,
+        //             name: tajo.name,
+        //             valid: tajo.valid
+        //         }
+        //     })
 
-            await TajoModel.insertMany(tajos)
+        //     await TajoModel.insertMany(tajos)
+        //     console.log('TAJOS SAVED')
 
-        }
+        // }
     }
     catch (error) {
         res.json({ message: error.message })
@@ -315,6 +320,7 @@ export const generateContract = async (req, res) => {
             })
 
             await contractModel.insertMany(contracts)
+            console.log('CONTRACTS SAVED')
 
         }
     }

@@ -13,7 +13,8 @@ const operationSchema = new mongoose.Schema({
     checklist_conditionsL: JSON,
     checklist_verifyW: JSON,
     checklist_conditionsW: JSON,
-    dateCreated: Date,
+    timestamp: Number,
+    dataCreatedAt: Date,
     code: Number
 },
 {

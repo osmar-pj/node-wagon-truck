@@ -2,7 +2,6 @@
 import axios from 'axios'
 import moment from 'moment-timezone'
 
-
 import OperatorModel from '../models/OperatorModel.js'
 import LocomotiveModel from '../models/LocomotiveModel.js'
 
@@ -19,6 +18,18 @@ import TajoModel from '../models/TajoModel.js'
 import ContractModel from '../models/ContractModel.js'
 
 import Truck from '../models/TruckModel.js'
+
+const fnTransform = (wagons) => {
+    return wagons.reduce((acc, wagon) => {
+        const found = acc.find(w => w.material === wagon.material)
+        if (found) {
+            found.count++
+        } else {
+            acc.push({material: wagon.material, count: 1})
+        }
+        return acc
+    }, [])
+}
 
 // ENVIAMOS DRIVERS, TRUCKS Y TAJOS
 export const getAllDriversTrucks = async (req, res) => {
@@ -49,7 +60,6 @@ export const getAllDriversTrucks = async (req, res) => {
 // REGISTRO DE DATA DE VAGONES
 export const insertWagonData = async (req, res) => {
     try {
-        await axios.post(`${process.env.GEOLOGY_URL}/triplist`, {data: 'datos'})
         const fulldata = req.body;
         
         const insertData = async (Model, data) => {
@@ -71,6 +81,7 @@ export const insertWagonData = async (req, res) => {
 
         for (const travelData of dataTravels) {
             const newTravel = await insertData(TravelModel, travelData);
+            newTravel.timestamp = Math.floor(newTravel.dataCreatedAt/1000)
             newTravelData.push(newTravel);
         }
 
@@ -83,13 +94,64 @@ export const insertWagonData = async (req, res) => {
                 newTravelDataIncompleto.push(newTravelIncompleto);
             }
         }
-        // console.log('WAGON',dataOperations, dataTravels, dataTravelsIncompleto)
-        // await Promise.all([...newOperationData, ...newTravelData, ...newTravelDataIncompleto]);
-        // darle la forma 
-        // const { travel_Id, fecha, hora, turno, operador, vehiculo, vagones, mina, tipo, tajo, ton, tonh, material, ruma, ley_ag, ley_fe, ley_mn, ley_pb, ley_zn, fecha_abast, datetime, statusMina, validMina, statusGeology, validGeology } = req.body;
-        // console.log(operation, travel)
-        // await axios.post(`${process.env.GEOLOGY_URL}/triplist`, fulldata)
-
+        await Promise.all([...newOperationData, ...newTravelData, ...newTravelDataIncompleto])
+        const months = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO','AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE']
+        const tripsFormatted = newTravelData.map(async (i) => {
+            const operation = await OperationModel.findOne(({code: i.code}))
+            const locomotive = await LocomotiveModel.findOne(({locomotiveId: i.locomotive_Id}))
+            const operator = await OperatorModel.findOne(({operatorId: i.operator_Id}))
+            const validWagons = i.wagons.filter(i => i.material != 'VACIO' && i.material != 'INOPERATIVO')
+            const tonh = validWagons.length * 8
+            const ton = tonh * 0.94
+            const destinos = i.destino
+            const materials2 = fnTransform(validWagons)
+            const materials = materials2.map(material => {
+                if (material.material === 'POLIMETALICO') {
+                    return {material: 'Polimetálico', count: material.count}
+                }
+                if (material.material === 'ALABANDITA') {
+                    return {material: 'Ag/Alabandita', count: material.count}
+                }
+                if (material.material === 'CARBONATO') {
+                    return {material: 'Ag/Carbonatos', count: material.count}
+                }
+                if (material.material === 'DESMONTE') {
+                    return {material: 'Desmonte', count: material.count}
+                }
+                return material
+            })
+            return {
+                code: i.code,
+                month: months[new Date(i.dataCreatedAt).getMonth()], // ENERO / DIC
+                year: new Date(i.dataCreatedAt).getFullYear(), // 2021
+                date: new Date(i.dataCreatedAt), // 01/01/2021
+                nro_month: new Date(i.dataCreatedAt).getMonth() + 1, // mes de NODE
+                timestamp: i.timestamp,
+                dataCreatedAt: i.dataCreatedAt,
+                wagons: i.wagons,
+                mining: i.mining.toUpperCase(),
+                status: 'Cancha',
+                destiny: destinos,
+                ubication: 'Cancha 2',
+                pila: destinos.length > 1 ? null : destinos[0],
+                turn: operation.turno,
+                operator: operator.name,
+                tag: locomotive.tag,
+                contract: 'CIA',
+                materials: materials.length > 1 ? materials : null,
+                dominio: materials.length > 1 ? null : materials[0].material,
+                vagones: validWagons.length,
+                ton: ton,
+                tonh: tonh,
+                statusMina: 'Completo',
+                statusTrip: destinos.length > 1 ? 'waitSplit' : 'waitComplete',
+                history: [{work: 'Creado', date: i.timestamp, user: operator.name}],
+                carriage: 'Vagones',
+                splitRequired: destinos.length > 1 ? true : false
+            }
+        })
+        const data = await Promise.all([...tripsFormatted])
+        await axios.post(`${process.env.GEOLOGY_URL}/trip`, data)
         return res.status(200).json({ status: true, message: 'Se ha registrado la data correctamente en la base de datos' });
     } catch (error) {
         res.json({ message: error.message });
@@ -129,6 +191,7 @@ export const insertTruckData = async (req, res) => {
         for (const travelData of dataTravels) {
             if (validDriverIds.includes(travelData.driver_Id) && validTruckIds.includes(travelData.truck_Id)) {
                 const newTravel = await insertData(TravelTruckModel, travelData);
+                newTravel.timestamp = Math.floor(newTravel.dataCreatedAt/1000)
                 newTravelData.push(newTravel);
             }
         }
@@ -146,8 +209,8 @@ export const insertTruckData = async (req, res) => {
         }
         await Promise.all([...newOperationData, ...newTravelData, ...newTravelDataIncompleto]);
         // filtrar los viajes hacia colquicocha
-        const tripsCanchas = dataTravels.filter((i) => i.ruta === 'YUM CANCHA SUPERFICIE - UCH CANCHA COLQUICOCHA' || i.ruta === 'YUM CARGUIO INTERIOR MINA - UCH CANCHA COLQUICOCHA')
-        const tripsPlanta = dataTravels.filter(i => i.ruta === 'UCH CANCHA COLQUICOCHA - UCH ECHADERO PLANTA')
+        const tripsCanchas = newTravelData.filter((i) => i.ruta === 'YUM CANCHA SUPERFICIE - UCH CANCHA COLQUICOCHA' || i.ruta === 'YUM CARGUIO INTERIOR MINA - UCH CANCHA COLQUICOCHA')
+        const tripsPlanta = newTravelData.filter(i => i.ruta === 'UCH CANCHA COLQUICOCHA - UCH ECHADERO PLANTA')
         const months = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 'JULIO','AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE']
         if (tripsCanchas.length > 0) {
             const tripsFormatted = tripsCanchas.map(async (i) => {
@@ -155,10 +218,12 @@ export const insertTruckData = async (req, res) => {
                 const truck = await TruckModel.findOne(({truckId: i.truck_Id}))
                 const driver = await DriverModel.findOne(({driverId: i.driver_Id}))
                 const contract = await ContractModel.findOne(({contractId: driver.contract}))
+                const tajo = await TajoModel.findOne({name: i.tajo})
                 return {
-                    month: months[new Date(i.createdAt).getMonth()], // ENERO / DIC
-                    year: `${new Date(i.createdAt).getFullYear()}`, // 2021
-                    date: `${new Date(i.createdAt).getDate()}/${new Date(i.createdAt).getMonth() + 1}/${new Date(i.createdAt).getFullYear()}`, // 01/01/2021
+                    code: i.code,
+                    month: months[new Date(i.dataCreatedAt).getMonth()], // ENERO / DIC
+                    year: new Date(i.dataCreatedAt).getFullYear(), // 2021
+                    date: i.dataCreatedAt,
                     status: 'Cancha',
                     ubication: 'Cancha Colquicocha',
                     turn: operation.turno,
@@ -167,56 +232,55 @@ export const insertTruckData = async (req, res) => {
                     tag: truck.tag,
                     contract: contract.name,
                     type: i.type,
-                    tajo: i.tajo,
-                    dominio: i.dominio,
-                    ton: i.weight_net * 0.94,
-                    tonh: i.weight_net,
-                    timestamp: i.createdAt,
-                    nro_month: new Date(i.createdAt).getMonth() + 1, // mes de NODE
-                    travel_Id: i.createdAt,
+                    tajo: i.tajo, // llamar a veta y level
+                    zone: tajo ? tajo.zone : null,
+                    level: tajo ? tajo.level : null,
+                    veta: tajo ? tajo.veta : null,
+                    material: i.dominio,
+                    ton: i.weight_net * 0.94 / 1000,
+                    tonh: i.weight_net / 1000,
+                    timestamp: i.timestamp,
+                    nro_month: new Date(i.dataCreatedAt).getMonth() + 1, // mes de NODE
                     statusMina: 'Completo',
-                    validMina: true,
-                    statusGeology: 'OreControl',
-                    validGeology: true
+                    statusTrip: 'waitComplete',
+                    history: [{work: 'Creado', date: i.timestamp, user: driver.name}],
+                    carriage: 'Camion',
+                    splitRequired: false
                 }
-            
             })
             const data = await Promise.all(tripsFormatted)
-            await axios.post(`${process.env.GEOLOGY_URL}/triplist`, data)
+            // console.log('TRIPS-CANCHAS', data)
+            await axios.post(`${process.env.GEOLOGY_URL}/trip`, data)
         }
 
         if (tripsPlanta.length > 0) {
-            console.log('PLANTA', tripsPlanta)
+            console.log('TRIPS-PLANTA', tripsPlanta)
             const tripsFormatted = tripsPlanta.map(async (i) => {
                 const operation = await OperationTruckModel.findOne(({code: i.code}))
                 const truck = await TruckModel.findOne(({truckId: i.truck_Id}))
                 const driver = await DriverModel.findOne(({driverId: i.driver_Id}))
                 const contract = await ContractModel.findOne(({contractId: driver.contract}))
                 return {
-                    month: months[new Date(i.createdAt).getMonth()], // ENERO / DIC
-                    year: `${new Date(i.createdAt).getFullYear()}`, // 2021
-                    date: `${new Date(i.createdAt).getDate()}/${new Date(i.createdAt).getMonth() + 1}/${new Date(i.createdAt).getFullYear()}`, // 01/01/2021
-                    status: 'Planta',
-                    ubication: 'Planta',
+                    code: i.code,
+                    month: months[new Date(i.dataCreatedAt).getMonth()], // ENERO / DIC
+                    year: new Date(i.dataCreatedAt).getFullYear(), // 2021
+                    date: i.dataCreatedAt, // 01/01/2021
                     turn: operation.turno,
-                    mining: i.mining.toUpperCase(),
                     operator: driver.name,
                     tag: truck.tag,
                     contract: contract.name,
-                    type: i.type,
-                    tajo: i.tajo,
-                    dominio: i.dominio,
-                    ton: i.weight_net * 0.94,
-                    tonh: i.weight_net,
-                    timestamp: i.createdAt,
-                    nro_month: new Date(i.createdAt).getMonth() + 1, // mes de NODE
-                    travel_Id: i.createdAt,
+                    cod_tableta: i.tablet,
+                    ton: i.weight_net / 1000 / (1 + 9/100),
+                    tonh: i.weight_net / 1000,
+                    timestamp: i.timestamp,
+                    nro_month: new Date(i.dataCreatedAt).getMonth() + 1, // mes de NODE
                     statusMina: 'Completo',
-                    validMina: true,
-                    statusGeology: 'General',
-                    validGeology: true
+                    carriage: 'Camion',
                 }
             })
+            const data = await Promise.all(tripsFormatted)
+            // console.log('TRIPS-PLANTA', data)
+            await axios.post(`${process.env.GEOLOGY_URL}/planta`, data)
         }
         
         return res.status(200).json({ status: true, message: 'Se ha registrado la data correctamente en la base de datos' });
