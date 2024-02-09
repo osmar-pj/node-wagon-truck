@@ -1,5 +1,5 @@
 // IMPORTAMOS EL MODELO
-
+import axios from 'axios'
 import TajoModel from '../models/TajoModel.js'
 
 export const getAllTajos = async (req, res) => {

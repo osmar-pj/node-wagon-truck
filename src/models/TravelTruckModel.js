@@ -8,7 +8,7 @@ const travelTruckSchema = new mongoose.Schema({
     mining: String,
     status: String,
     ruta: String,
-    tablet: Number,
+    tablet: String,
     type: String,
     tajo: String,
     dominio: String,
