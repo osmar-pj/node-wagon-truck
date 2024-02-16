@@ -242,9 +242,9 @@ export const insertTruckData = async (req, res) => {
                     contract: contract.name,
                     type: i.type,
                     tajo: i.tajo, // llamar a veta y level
-                    zone: tajo ? tajo.zone : null,
-                    level: tajo ? tajo.level : null,
-                    veta: tajo ? tajo.veta : null,
+                    zona: tajo.zona,
+                    level: tajo.level,
+                    veta: tajo.veta,
                     material: i.dominio,
                     ton: i.weight_net * 0.94 / 1000,
                     tonh: i.weight_net / 1000,
@@ -269,7 +269,7 @@ export const insertTruckData = async (req, res) => {
                 const truck = await TruckModel.findOne(({truckId: i.truck_Id}))
                 const driver = await DriverModel.findOne(({driverId: i.driver_Id}))
                 const contract = await ContractModel.findOne(({contractId: driver.contract}))
-                const pila = await axios.get(`${process.env.GEOLOGY_URL}/pilaTableta/${i.tablet}`)
+                // const pila = await axios.get(`${process.env.GEOLOGY_URL}/pilaTableta/${i.tablet}`)
                 return {
                     code: i.code,
                     month: months[new Date(i.dataCreatedAt).getMonth()], // ENERO / DIC
@@ -279,17 +279,14 @@ export const insertTruckData = async (req, res) => {
                     operator: driver.name,
                     tag: truck.tag,
                     contract: contract.name,
-                    zone: pila.zone,
-                    dominio: pila.dominio,
-                    veta: pila.veta,
-                    tajo: pila.tajo,
                     cod_tableta: i.tablet,
                     ton: i.weight_net / 1000 / (1 + 9/100),
                     tonh: i.weight_net / 1000,
                     timestamp: i.timestamp,
+                    dateCreatedAt: i.dataCreatedAt,
                     nro_month: new Date(i.dataCreatedAt).getMonth() + 1, // mes de NODE
                     statusMina: 'Completo',
-                    carriage: 'Camion',
+                    validMina: true
                 }
             })
             const data = await Promise.all(tripsFormatted)

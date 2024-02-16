@@ -4,12 +4,13 @@ const TajoSchema = new mongoose.Schema({
     tajoId: Number,
     name: String,
     valid: Number,
-    createdAt: {
-        type: Date,
-        default: Date.now
-    }
+    zona: String,
+    level: String,
+    veta: String,
+    mineral: String,
 },
 {
+    timestamps: true,
     versionKey: false,
 }
 )
